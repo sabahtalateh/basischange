@@ -13,13 +13,6 @@
   .panel:nth-child(2n) { border-right: none; }
   .panel:nth-child(3), .panel:nth-child(4) { border-bottom: none; }
   canvas { display: block; position: absolute; top: 0; left: 0; }
-  .basis-blur {
-    position: absolute; top: 10px; left: 10px; width: 64px; height: 64px;
-    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
-    background: rgba(0,0,0,0.35); border: 1px solid #444;
-    z-index: 1; pointer-events: none;
-  }
-  .box-cv { position: absolute; top: 10px; left: 10px; width: 64px; height: 64px; z-index: 2; pointer-events: none; }
   .panel-label {
     position: absolute; top: 10px; left: 0; right: 0;
     text-align: center; color: #555; font-size: 12px; font-family: serif;
@@ -192,6 +185,10 @@
   <div class="sidebar-title">B⁻¹ · T·x: обратно в базис B</div>
   <div id="inv-formula" style="color:#aaa; padding: 4px 0;"></div>
 
+  <div class="divider"></div>
+  <div class="sidebar-title">B⁻¹·T·B — трансформация T в базисе B</div>
+  <div id="conj-formula" style="color:#aaa; padding: 4px 0;"></div>
+
   <div style="flex:1"></div>
   <div class="divider"></div>
   <div style="display:flex; align-items:center; gap:8px;">
@@ -328,7 +325,37 @@ function renderInvFormula() {
   katex.render(tex, el, { throwOnError: false, displayMode: false });
 }
 
-function redraw() { scenes.forEach(s => s.draw()); renderBasisFormula(); renderTFormula(); renderInvFormula(); }
+function renderConjugateFormula() {
+  const el = document.getElementById('conj-formula');
+  if (!el || !window.katex) return;
+  const d = detB();
+  if (Math.abs(d) < 1e-10) { el.textContent = '—'; return; }
+  const g  = s => `\\textcolor{#a0ff80}{${s}}`;
+  const p  = s => `\\textcolor{#c080ff}{${s}}`;
+  const tc = s => `\\textcolor{#50d0b0}{${s}}`;
+  const a11 = B2.y, a12 = -B2.x, a21 = -B1.y, a22 = B1.x;
+  const det = d < 0 ? `(${fmtN(d)})` : fmtN(d);
+  // B⁻¹ · T
+  const p11 = (B2.y*T.m11 + (-B2.x)*T.m21)/d;
+  const p12 = (B2.y*T.m12 + (-B2.x)*T.m22)/d;
+  const p21 = ((-B1.y)*T.m11 + B1.x*T.m21)/d;
+  const p22 = ((-B1.y)*T.m12 + B1.x*T.m22)/d;
+  // (B⁻¹·T) · B
+  const r11 = p11*B1.x + p12*B1.y;
+  const r12 = p11*B2.x + p12*B2.y;
+  const r21 = p21*B1.x + p22*B1.y;
+  const r22 = p21*B2.x + p22*B2.y;
+  const tex =
+    `\\begin{aligned}`+
+    `&\\underbrace{\\tfrac{1}{${det}}\\begin{pmatrix}${p(fmtN(a11))}&${p(fmtN(a12))}\\\\${g(fmtN(a21))}&${g(fmtN(a22))}\\end{pmatrix}}_{B^{-1}}`+
+    `\\underbrace{\\begin{pmatrix}${tc(fmtN(T.m11))}&${tc(fmtN(T.m12))}\\\\${tc(fmtN(T.m21))}&${tc(fmtN(T.m22))}\\end{pmatrix}}_{T}`+
+    `\\underbrace{\\begin{pmatrix}${g(fmtN(B1.x))}&${p(fmtN(B2.x))}\\\\${g(fmtN(B1.y))}&${p(fmtN(B2.y))}\\end{pmatrix}}_{B}\\\\[8pt]`+
+    `&=\\begin{pmatrix}${fmtN(r11)}&${fmtN(r12)}\\\\${fmtN(r21)}&${fmtN(r22)}\\end{pmatrix}`+
+    `\\end{aligned}`;
+  katex.render(tex, el, { throwOnError: false, displayMode: false });
+}
+
+function redraw() { scenes.forEach(s => s.draw()); renderBasisFormula(); renderTFormula(); renderInvFormula(); renderConjugateFormula(); }
 
 ['b1x','b1y','b2x','b2y','vx','vy','t11','t12','t21','t22'].forEach(id => {
   const inp = document.getElementById(id);
@@ -540,6 +567,7 @@ makeScene('c1', 'panel-1', ({arrow, label, grid, axes, obliquegrid, ctx, toScree
   const pad = 10, len = 20, half = 32;
   const bx = pad, by = pad, bw = half*2, bh = half*2;
   const ox2 = bx + half, oy2 = by + half;
+  ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fillRect(bx, by, bw, bh);
   ctx.strokeStyle = '#333'; ctx.lineWidth = 1;
   ctx.strokeRect(bx, by, bw, bh);
   function arrowS(x1, y1, x2, y2, color) {
@@ -580,6 +608,7 @@ makeScene('c2', 'panel-2', ({arrow, label, grid, axes, ctx}) => {
   const bw = mL + len + mR, bh = mT + len + mB;
   const bx = pad, by = pad;
   const ox = bx + mL, oy = by + mT + len;
+  ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fillRect(bx, by, bw, bh);
   ctx.strokeStyle = '#333'; ctx.lineWidth = 1;
   ctx.strokeRect(bx, by, bw, bh);
   function arrowS(x1, y1, x2, y2, color) {
@@ -612,6 +641,7 @@ makeScene('c3', 'panel-3', ({grid, axes, arrow, label, ctx}) => {
   const pad = 10, len = 20, half = 32;
   const bx = pad, by = pad, bw = half*2, bh = half*2;
   const ox = bx + half, oy = by + half;
+  ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fillRect(bx, by, bw, bh);
   ctx.strokeStyle = '#333'; ctx.lineWidth = 1;
   ctx.strokeRect(bx, by, bw, bh);
   function arrowS(x1, y1, x2, y2, color) {
@@ -678,6 +708,7 @@ makeScene('c4', 'panel-4', ({obliquegrid, grid, axes, arrow, label, ctx, toScree
   const pad = 10, len = 20, half = 32;
   const bx = pad, by = pad, bw = half*2, bh = half*2;
   const ox = bx + half, oy = by + half;
+  ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fillRect(bx, by, bw, bh);
   ctx.strokeStyle = '#333'; ctx.lineWidth = 1;
   ctx.strokeRect(bx, by, bw, bh);
   function arrowS(x1, y1, x2, y2, color) {
