@@ -266,8 +266,8 @@ function renderBasisFormula() {
     `&\\begin{pmatrix}${g(fmtN(B1.x))}&${p(fmtN(B2.x))}\\\\${g(fmtN(B1.y))}&${p(fmtN(B2.y))}\\end{pmatrix}\\begin{pmatrix}${y(fmtN(c1))}\\\\${y(fmtN(c2))}\\end{pmatrix}\\\\[6pt]`+
     `&=\\begin{pmatrix}${row(B1.x,B2.x)}\\\\${row(B1.y,B2.y)}\\end{pmatrix}\\\\[6pt]`+
     `&=\\begin{pmatrix}${y(fmtN(vs.x))}\\\\${y(fmtN(vs.y))}\\end{pmatrix}\\\\[10pt]`+
-    `&\\tfrac{1}{${det}}\\begin{pmatrix}${p(fmtN(a11))}&${p(fmtN(a12))}\\\\${g(fmtN(a21))}&${g(fmtN(a22))}\\end{pmatrix}\\begin{pmatrix}${y(fmtN(vs.x))}\\\\${y(fmtN(vs.y))}\\end{pmatrix}\\\\[6pt]`+
-    `&=\\tfrac{1}{${det}}\\begin{pmatrix}${rowInv(a11,a12,p,p)}\\\\${rowInv(a21,a22,g,g)}\\end{pmatrix}\\\\[6pt]`+
+    `&\\tfrac{1}{${det}}\\begin{pmatrix}${g(fmtN(a11))}&${p(fmtN(a12))}\\\\${g(fmtN(a21))}&${p(fmtN(a22))}\\end{pmatrix}\\begin{pmatrix}${y(fmtN(vs.x))}\\\\${y(fmtN(vs.y))}\\end{pmatrix}\\\\[6pt]`+
+    `&=\\tfrac{1}{${det}}\\begin{pmatrix}${rowInv(a11,a12,g,p)}\\\\${rowInv(a21,a22,g,p)}\\end{pmatrix}\\\\[6pt]`+
     `&=\\tfrac{1}{${det}}\\begin{pmatrix}${y(fmtN(n1))}\\\\${y(fmtN(n2))}\\end{pmatrix}=\\begin{pmatrix}${y(fmtN(c1))}\\\\${y(fmtN(c2))}\\end{pmatrix}`+
     `\\end{aligned}`;
   katex.render(tex, el, { throwOnError: false, displayMode: false });
@@ -318,8 +318,8 @@ function renderInvFormula() {
   const det = d < 0 ? `(${fmtN(d)})` : fmtN(d);
   const tex =
     `\\begin{aligned}`+
-    `&\\tfrac{1}{${det}}\\begin{pmatrix}${p(fmtN(a11))}&${p(fmtN(a12))}\\\\${g(fmtN(a21))}&${g(fmtN(a22))}\\end{pmatrix}\\begin{pmatrix}${tc(fmtN(tx))}\\\\${tc(fmtN(ty))}\\end{pmatrix}\\\\[6pt]`+
-    `&=\\tfrac{1}{${det}}\\begin{pmatrix}${row(a11,a12,p,p)}\\\\${row(a21,a22,g,g)}\\end{pmatrix}\\\\[6pt]`+
+    `&\\tfrac{1}{${det}}\\begin{pmatrix}${g(fmtN(a11))}&${p(fmtN(a12))}\\\\${g(fmtN(a21))}&${p(fmtN(a22))}\\end{pmatrix}\\begin{pmatrix}${tc(fmtN(tx))}\\\\${tc(fmtN(ty))}\\end{pmatrix}\\\\[6pt]`+
+    `&=\\tfrac{1}{${det}}\\begin{pmatrix}${row(a11,a12,g,p)}\\\\${row(a21,a22,g,p)}\\end{pmatrix}\\\\[6pt]`+
     `&=\\tfrac{1}{${det}}\\begin{pmatrix}${y(fmtN(n1))}\\\\${y(fmtN(n2))}\\end{pmatrix}=\\begin{pmatrix}${y(fmtN(rc1))}\\\\${y(fmtN(rc2))}\\end{pmatrix}`+
     `\\end{aligned}`;
   katex.render(tex, el, { throwOnError: false, displayMode: false });
@@ -335,21 +335,20 @@ function renderConjugateFormula() {
   const tc = s => `\\textcolor{#50d0b0}{${s}}`;
   const a11 = B2.y, a12 = -B2.x, a21 = -B1.y, a22 = B1.x;
   const det = d < 0 ? `(${fmtN(d)})` : fmtN(d);
-  // B⁻¹ · T
-  const p11 = (B2.y*T.m11 + (-B2.x)*T.m21)/d;
-  const p12 = (B2.y*T.m12 + (-B2.x)*T.m22)/d;
-  const p21 = ((-B1.y)*T.m11 + B1.x*T.m21)/d;
-  const p22 = ((-B1.y)*T.m12 + B1.x*T.m22)/d;
-  // (B⁻¹·T) · B
-  const r11 = p11*B1.x + p12*B1.y;
-  const r12 = p11*B2.x + p12*B2.y;
-  const r21 = p21*B1.x + p22*B1.y;
-  const r22 = p21*B2.x + p22*B2.y;
+  // adj(B) · T  (integer)
+  const q11 = a11*T.m11 + a12*T.m21, q12 = a11*T.m12 + a12*T.m22;
+  const q21 = a21*T.m11 + a22*T.m21, q22 = a21*T.m12 + a22*T.m22;
+  // (adj·T) · B  (integer)
+  const n11 = q11*B1.x + q12*B1.y, n12 = q11*B2.x + q12*B2.y;
+  const n21 = q21*B1.x + q22*B1.y, n22 = q21*B2.x + q22*B2.y;
+  // final
+  const r11 = n11/d, r12 = n12/d, r21 = n21/d, r22 = n22/d;
   const tex =
     `\\begin{aligned}`+
-    `&\\underbrace{\\tfrac{1}{${det}}\\begin{pmatrix}${p(fmtN(a11))}&${p(fmtN(a12))}\\\\${g(fmtN(a21))}&${g(fmtN(a22))}\\end{pmatrix}}_{B^{-1}}`+
+    `&\\tfrac{1}{${det}}\\underbrace{\\begin{pmatrix}${g(fmtN(a11))}&${p(fmtN(a12))}\\\\${g(fmtN(a21))}&${p(fmtN(a22))}\\end{pmatrix}}_{B^{-1}}`+
     `\\underbrace{\\begin{pmatrix}${tc(fmtN(T.m11))}&${tc(fmtN(T.m12))}\\\\${tc(fmtN(T.m21))}&${tc(fmtN(T.m22))}\\end{pmatrix}}_{T}`+
     `\\underbrace{\\begin{pmatrix}${g(fmtN(B1.x))}&${p(fmtN(B2.x))}\\\\${g(fmtN(B1.y))}&${p(fmtN(B2.y))}\\end{pmatrix}}_{B}\\\\[8pt]`+
+    `&=\\tfrac{1}{${det}}\\begin{pmatrix}${fmtN(n11)}&${fmtN(n12)}\\\\${fmtN(n21)}&${fmtN(n22)}\\end{pmatrix}\\\\[6pt]`+
     `&=\\begin{pmatrix}${fmtN(r11)}&${fmtN(r12)}\\\\${fmtN(r21)}&${fmtN(r22)}\\end{pmatrix}`+
     `\\end{aligned}`;
   katex.render(tex, el, { throwOnError: false, displayMode: false });
